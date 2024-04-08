@@ -2,3 +2,6 @@
 # An open-source analytics platform for viticulture
 
 [Bill of Hardware Materials](BOM.md)
+
+## Community
+[Blog](https://blog.vineiq.io/)
