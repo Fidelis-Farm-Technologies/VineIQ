@@ -47,7 +47,7 @@ impl Appender {
             .as_i64()
             .expect("Error missing device id");
         let data = &json_object["obs"][0];
-        let time_ms = data[0].as_i64().unwrap() * 1000;
+        let time_ms = data[0].as_i64().unwrap() * 1000000;
         let fahrenheit = self
             .to_fahrenheit(data[7].as_f64().unwrap())
             .unwrap();
