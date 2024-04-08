@@ -9,6 +9,9 @@ FROM bitnami/minideb:bookworm AS runner
 #
 # ---------------------------------------------------------------
 
+RUN apt-get update
+RUN apt-get install -y ca-certificates 
+
 RUN mkdir -p /opt/vineiq/etc /opt/vineiq/bin /opt/vineiq/scripts
 WORKDIR /opt/vineiq
 

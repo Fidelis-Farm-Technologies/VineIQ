@@ -5,7 +5,7 @@ services:
     container_name: yolink_logger
     restart: unless-stopped   
     depends_on:
-      - questdb
+      - vinedb
     volumes:
       - /opt/vineiq/etc:/opt/vineiq/etc
     command: /opt/vineiq/scripts/entrypoint-yolink_logger.sh
@@ -15,20 +15,17 @@ services:
     container_name: tempest_logger
     restart: unless-stopped   
     depends_on:
-      - questdb    
+      - vinedb
     volumes:
       - /opt/vineiq/etc:/opt/vineiq/etc
     command: /opt/vineiq/scripts/entrypoint-tempest_logger.sh
 
-  questdb:
+  vinedb:
     image: questdb/questdb
-    container_name: vineiq-questdb
+    container_name: vinedb
     restart: always
     ports:
-      - 8000:9000
-      - 8009:9009
-      - 9812:8812
-      # - 9003:9003
+      - 19000:9000
     volumes:
       - /opt/vineiq/database:/root/.questdb
     environment:
