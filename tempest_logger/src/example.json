@@ -1,0 +1,41 @@
+{
+  "data": {
+    "alarm": {
+      "code": 0,
+      "highHumidity": false,
+      "highTemp": false,
+      "lowBattery": false,
+      "lowHumidity": false,
+      "lowTemp": false,
+      "period": false
+    },
+    "battery": 4,
+    "batteryType": "Li",
+    "humidity": 32.5,
+    "humidityCorrection": 0,
+    "humidityLimit": {
+      "max": 100,
+      "min": 0
+    },
+    "interval": 0,
+    "loraInfo": {
+      "gatewayId": "d88b4c1603046d08",
+      "gateways": 2,
+      "netId": "010201",
+      "signal": -67
+    },
+    "mode": "f",
+    "state": "normal",
+    "tempCorrection": 0,
+    "tempLimit": {
+      "max": 35,
+      "min": 1.4
+    },
+    "temperature": 18.4,
+    "version": "050f"
+  },
+  "deviceId": "d88b4c010008b987",
+  "event": "THSensor.Report",
+  "msgid": "1712517507810",
+  "time": 1712517507811
+}

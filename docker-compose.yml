@@ -1,0 +1,62 @@
+version: '3.7'
+services:
+  yolink_logger:
+    image: fidelismachine/vineiq
+    container_name: yolink_logger
+    restart: unless-stopped   
+    depends_on:
+      - questdb
+    volumes:
+      - /opt/vineiq/etc:/opt/vineiq/etc
+    command: /opt/vineiq/scripts/entrypoint-yolink_logger.sh
+
+  tempest_logger:
+    image: fidelismachine/vineiq
+    container_name: tempest_logger
+    restart: unless-stopped   
+    depends_on:
+      - questdb    
+    volumes:
+      - /opt/vineiq/etc:/opt/vineiq/etc
+    command: /opt/vineiq/scripts/entrypoint-tempest_logger.sh
+
+  questdb:
+    image: questdb/questdb
+    container_name: vineiq-questdb
+    restart: always
+    ports:
+      - 8000:9000
+      - 8009:9009
+      - 9812:8812
+      # - 9003:9003
+    volumes:
+      - /opt/vineiq/database:/root/.questdb
+    environment:
+      - QDB_LOG_W_STDOUT_LEVEL=ERROR
+      - QDB_LOG_W_FILE_LEVEL=ERROR
+      - QDB_LOG_W_HTTP_MIN_LEVEL=ERROR
+      - QDB_SHARED_WORKER_COUNT=2 # Amount of worker threads
+      - QDB_PG_USER=${QDB_USERNAME} # postgresql user -> Configured in .env file
+      - QDB_PG_PASSWORD=${QDB_PASSWORD} # postgresql password -> Configured in .env file
+      - QDB_TELEMETRY_ENABLED=false # Disable telemetry
+      # - QDB_HTTP_ENABLED=false # Disable http server gui and rest interface
+      # - QDB_HTTP_BIND_TO=0.0.0.0:9000 # http server
+      # - QDB_HTTP_SECURITY_READONLY=true # HTTP read only mode
+      # - QDB_HTTP_MIN_ENABLED=false # Disable http health server
+      # - QDB_HTTP_MIN_BIND_TO=0.0.0.0:9003 # http health server
+      # - QDB_PG_ENABLED=false # Disable postgresql
+      # - QDB_PG_NET_BIND_TO=0.0.0.0:8812 # postgresql server
+      # - QBD_LINE_TCP_ENABLED=false # Disable influxdb tcp server
+      # - QBD_LINE_TCP_NET_BIND_TO=0.0.0.0:9009 # influxdb tcp server
+      # - QBD_LINE_UDP_ENABLED=false # Disable influxdb udp server
+      # - QBD_LINE_UDP_NET_BIND_TO=0.0.0.0:9009 # influxdb udp server
+    
+  grafana:
+    image: grafana/grafana-oss
+    container_name: vineiq-grafana
+    restart: unless-stopped
+    user: "0:0"
+    volumes:
+      - /opt/vineiq/grafana:/var/lib/grafana
+    ports:
+      - 13000:3000

@@ -1,0 +1,20 @@
+[package]
+name = "tempest_logger"
+version = "0.1.0"
+edition = "2021"
+authors = ["Fidelis Farm & Technlogies <randy@vineiq.io>"]
+license = "AGPL-3.0 license"
+repository = "https://github.com/Fidelis-Farm-Technologies/VineIQ"
+
+[dependencies]
+serde_json = "1.0"
+clap = { version = "4.5.3", features = ["derive"] }
+serde = "1.0.197"
+questdb-rs = "4.0.0"
+chrono = "0.4.35"
+tokio = { version = "1", features = ["full"] }
+str = "0.1.4"
+serde_yaml = "0.9.34"
+serde_derive = "1.0.197"
+tungstenite = {version = "0.21.0", features = ["native-tls"]}
+url = "2.5.0"

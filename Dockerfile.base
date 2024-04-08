@@ -1,0 +1,25 @@
+FROM bitnami/minideb:bookworm as vineiq_base
+
+# ---------------------------------------------------------------
+#
+# ---------------------------------------------------------------
+RUN apt-get update
+RUN apt-get install -y build-essential curl libssl-dev pkg-config ca-certificates 
+
+# Get Rust and cargo
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+ENV PATH=/root/.cargo/bin:$PATH
+
+WORKDIR /builder
+COPY . .
+#
+# build tempest_logger
+#
+WORKDIR /builder/tempest_logger
+RUN cargo build --release
+#
+# build yolink_logger
+#
+WORKDIR /builder/yolink_logger
+RUN cargo build --release
