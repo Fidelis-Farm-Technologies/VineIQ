@@ -2,6 +2,6 @@
 ## Hardware Bill of Materials
 Below is a list of hardware supported by this project:
 - [YoLink Smart Outdoor Temperature & Humidity Sensor](https://amzn.to/3TyHqj8)
-- [YoLink Smart Outdoor Temperature & Humidity Sensor](https://amzn.to/3TyHqj8)
+- [Tempest Weather System](https://shop.tempest.earth/?ref=TI0QKLWq1wZDPq)
 
 
