@@ -9,10 +9,8 @@ use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::str::Bytes;
 use std::time::Duration;
 use std::time::UNIX_EPOCH;
-use tokio::{task, time};
 
 pub struct Conf {
     value: Value,
@@ -238,10 +236,10 @@ impl MqttDatabaseLogger {
         let json_object = serde_json::from_str::<Value>(&message).unwrap();
         match json_object["event"].as_str() {
             Some("THSensor.Report") => db_appender
-                .process_report(&json_object)
+                .sensor_report(&json_object)
                 .expect("report error"),
             Some("THSensor.Alert") => db_appender
-                .process_alert(&json_object)
+                .sensor_alert(&json_object)
                 .expect("alert error"),
             _ => println!(
                 "Unknown event\n{}",
@@ -284,8 +282,5 @@ impl MqttDatabaseLogger {
                 }
             }
         }
-    }
-    pub fn status() {
-        unimplemented!();
     }
 }

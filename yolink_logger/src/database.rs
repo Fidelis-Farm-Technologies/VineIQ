@@ -1,6 +1,6 @@
 extern crate serde_derive;
 
-use chrono::NaiveDateTime;
+//use chrono::NaiveDateTime;
 use questdb::{
     ingress::{Buffer, Sender, TimestampMicros, TimestampNanos},
     Result,
@@ -66,28 +66,37 @@ impl Appender {
         Some((celcius * 1.8) + 32.0)
     }
 
-    pub fn get_vpd(&mut self, fahrenheit: f64, humidity: f64) -> Option<f64> {
-        Some(0.0)
+    pub fn calc_vpd(&mut self, celcius: f64, rh: f64) -> Option<f64> {
+        let base: f64 = 10.0;
+        let exp: f64 = 7.5 * celcius / (237.3 + celcius);
+
+        let vp_saturated: f64 = (610.7 * base.powf(exp)) / 1000.00;
+        //let vp_actual: f64 = ((rh * vp_saturated) / 100.0) / 1000.0;
+        let vpd: f64 = ((100.0 - rh) / 100.0) * vp_saturated;
+
+        //println!("vp saturated: {}", vp_saturated/1000.0);
+        //println!("vp actual: {}", vp_actual/1000.0);
+        //println!("vpd : {}", vpd);
+
+        Some(vpd)
     }
 
-    pub fn process_alert(&mut self, data: &Value) -> Result<()> {
+    pub fn sensor_alert(&mut self, data: &Value) -> Result<()> {
         println!(
-            "process_alert: \n{}",
+            "sensor_alert: \n{}",
             serde_json::to_string_pretty(&data).unwrap()
         );
         Ok(())
     }
-    pub fn process_report(&mut self, json_object: &Value) -> Result<()> {
-        println!("process_report:");
+    pub fn sensor_report(&mut self, json_object: &Value) -> Result<()> {
+        println!("sensor_report:");
         let time_ms = json_object["time"].as_i64().unwrap() * 1000; // microseconds
         let device_id = json_object["deviceId"].as_str().expect("Missing deviceId");
         let data = &json_object["data"];
-
-        let fahrenheit = self
-            .to_fahrenheit(data["temperature"].as_f64().unwrap())
-            .unwrap();
+        let celcius = data["temperature"].as_f64().unwrap();
+        let fahrenheit = self.to_fahrenheit(celcius).unwrap();
         let humidity = data["humidity"].as_f64().unwrap();
-        let vpd = self.get_vpd(fahrenheit, humidity).unwrap();
+        let vpd = self.calc_vpd(celcius, humidity).unwrap();
 
         let mut buffer = Buffer::new();
         let _ = buffer
@@ -97,12 +106,8 @@ impl Appender {
             .symbol("netId", data["loraInfo"]["netId"].as_str().unwrap())?
             .symbol("mode", data["mode"].as_str().unwrap())?
             .symbol("state", data["state"].as_str().unwrap())?
-            .column_f64(
-                "temperature",
-                self.to_fahrenheit(data["temperature"].as_f64().unwrap())
-                    .unwrap(),
-            )?
-            .column_f64("humidity", data["temperature"].as_f64().unwrap())?
+            .column_f64("temperature", fahrenheit)?
+            .column_f64("humidity", humidity)?
             .column_f64("vpd", vpd)?
             .column_i64("battery", data["battery"].as_i64().unwrap())?
             .column_bool("lowBattery", data["alarm"]["lowBattery"].as_bool().unwrap())?

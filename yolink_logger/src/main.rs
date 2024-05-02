@@ -21,7 +21,8 @@ async fn main() -> Result<(), Error> {
         yolink::Access::token(&yaml.get_token_url(), &yaml.get_ua_id(), &yaml.get_sec_id()).await?;
 
     let mut yolink_api = yolink::Api::new(&yaml.get_api_url(), &access_token);
-    let device_list = yolink_api
+
+    let _ = yolink_api
         .get_all_devices()
         .await
         .expect("Error acquiring the device list");
