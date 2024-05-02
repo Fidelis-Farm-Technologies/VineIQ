@@ -3,8 +3,8 @@ import time
 
 # url = "https://api.yosmart.com/open/yolink/token"
 url = "http://localhost/open/yolink/token"
-ua_id = "ua_F08AC7C7C5C44C2D81B84C50ACAB674F"
-sec_id = "sec_v1_0rjd714qf+CjAufbiBVaJg=="
+ua_id = "ua_xyz"
+sec_id = "sec_aaabbbcc=="
 
 data = {
     'grant_type': 'client_credentials'
