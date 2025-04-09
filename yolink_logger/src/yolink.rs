@@ -6,64 +6,89 @@
 use crate::database::Appender;
 use reqwest::Error;
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
+use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::str::Bytes;
 use std::time::Duration;
 use std::time::UNIX_EPOCH;
-use tokio::{task, time};
 
-pub struct Conf {
-    value: Value,
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct Service {
+    name: String,
 }
 
-impl Conf {
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Yolink {
+    token: String,
+    api: String,
+    database: String,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Mqtt {
+    broker: String,
+    port: u16,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Security {
+    ua_id: String,
+    sec_id: String,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct Sensor {
+    pub name: String,
+    pub eui: String,
+    pub lat: f64,
+    pub long: f64,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Config {
+    service: Service,
+    yolink: Yolink,
+    mqtt: Mqtt,
+    security: Security,
+    sensors: Vec<Sensor>,
+}
+
+impl Config {
     pub fn new(config_file: &str) -> Self {
         let content = std::fs::read_to_string(config_file).unwrap();
-        let value = serde_yaml::from_str::<Value>(&content).unwrap();
-        Self { value: value }
+
+        let config: Config = serde_yaml::from_str(&content).unwrap();
+        println!("{:#?}", config);
+
+        config
+    }
+    pub fn get_service_name(&mut self) -> String {
+        self.service.name.clone()
     }
     pub fn get_token_url(&mut self) -> String {
-        self.value["url"]["token"]
-            .as_str()
-            .expect("missing token url")
-            .to_string()
+        self.yolink.token.clone()
     }
     pub fn get_api_url(&mut self) -> String {
-        self.value["url"]["api"]
-            .as_str()
-            .expect("missing pi url")
-            .to_string()
+        self.yolink.api.clone()
     }
-    pub fn get_questdb_url(&mut self) -> String {
-        self.value["url"]["questdb"]
-            .as_str()
-            .expect("missing questdb url")
-            .to_string()
+    pub fn get_database_url(&mut self) -> String {
+        self.yolink.database.clone()
     }
     pub fn get_mqtt_broker(&mut self) -> String {
-        self.value["mqtt"]["broker"]
-            .as_str()
-            .expect("missing mqtt broker")
-            .to_string()
+        self.mqtt.broker.clone()
     }
-    pub fn get_mqtt_port(&mut self) -> i64 {
-        self.value["mqtt"]["port"]
-            .as_i64()
-            .expect("missing mqtt port")
+    pub fn get_mqtt_port(&mut self) -> u16 {
+        self.mqtt.port
     }
     pub fn get_ua_id(&mut self) -> String {
-        self.value["security"]["ua_id"]
-            .as_str()
-            .expect("missing security ua_id")
-            .to_string()
+        self.security.ua_id.clone()
     }
     pub fn get_sec_id(&mut self) -> String {
-        self.value["security"]["sec_id"]
-            .as_str()
-            .expect("missing security sec_id")
-            .to_string()
+        self.security.sec_id.clone()
+    }
+    pub fn get_sensors(&mut self) -> Vec<Sensor> {
+        self.sensors.clone()
     }
 }
 
@@ -106,7 +131,7 @@ impl Access {
 #[derive(Clone, Debug)]
 pub struct Device {
     id: String,
-    udid: String,
+    eui: String,
     model: String,
     name: String,
     token: String,
@@ -159,7 +184,7 @@ impl Api {
             for d in devices {
                 let device = Device {
                     id: d["deviceId"].to_string(),
-                    udid: d["deviceUDID"].to_string(),
+                    eui: d["deviceeui"].to_string(),
                     model: d["modelName"].to_string(),
                     name: d["name"].to_string(),
                     token: d["token"].to_string(),
@@ -214,23 +239,27 @@ impl Api {
 
 pub struct MqttDatabaseLogger {
     broker: String,
-    port: i64,
+    port: u16,
     topic: String,
     username: String,
+    servicename: String,    
 }
 
 impl MqttDatabaseLogger {
     pub fn new(
         mqtt_broker: &String,
-        mqtt_port: i64,
+        mqtt_port: u16,
         home_id: &String,
         access_token: &String,
+        service_name: &String,
     ) -> Self {
+   
         Self {
             broker: mqtt_broker.clone(),
             port: mqtt_port,
             topic: format!("yl-home/{}/+/report", home_id),
             username: access_token.clone(),
+            servicename: service_name.clone(),
         }
     }
 
@@ -255,7 +284,7 @@ impl MqttDatabaseLogger {
         println!("\nconnecting to broker: {}:{}", self.broker, self.port);
 
         let mut mqttoptions = MqttOptions::new(
-            "yolink.rust",
+            self.servicename.clone(),
             self.broker.clone(),
             self.port.try_into().unwrap(),
         );
@@ -274,10 +303,12 @@ impl MqttDatabaseLogger {
             match notification.unwrap() {
                 Event::Incoming(Packet::Publish(packet)) => {
                     let message = String::from_utf8_lossy(&packet.payload).to_string();
-                    let _ = self.log_event(db_appender, &message).expect("Error processing log event");
+                    let _ = self
+                        .log_event(db_appender, &message)
+                        .expect("Error processing log event");
                 }
                 Event::Outgoing(_) => {
-                   //println!(".");
+                    //println!(".");
                 }
                 _ => {
                     //println!(".");

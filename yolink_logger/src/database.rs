@@ -1,5 +1,7 @@
 extern crate serde_derive;
 
+use std::collections::HashMap;
+
 use chrono::NaiveDateTime;
 use questdb::{
     ingress::{Buffer, Sender, TimestampMicros, TimestampNanos},
@@ -7,8 +9,11 @@ use questdb::{
 };
 use serde_json::Value;
 
+use crate::yolink::Sensor;
+
 pub struct Appender {
     db_appender: Sender,
+    sensors: HashMap<String, Sensor>,
 }
 
 impl Appender {
@@ -55,10 +60,18 @@ impl Appender {
       "time": 1712517507811
     }
     */
-    pub fn new(db_url: &String) -> Appender {
+    pub fn new(db_url: &String, sensors: &Vec<Sensor>) -> Appender {
         let db_appender = Sender::from_conf(format!("tcp::addr={db_url};"));
+
+        let mut sensor_map: HashMap<String, Sensor> = HashMap::new();
+
+        for sensor in sensors {
+            sensor_map.insert(sensor.eui.clone(), sensor.clone());
+        }
+
         Appender {
             db_appender: db_appender.expect("Error: failed to connecto to questdb"),
+            sensors: sensor_map,
         }
     }
 
@@ -79,24 +92,39 @@ impl Appender {
     }
     pub fn process_report(&mut self, json_object: &Value) -> Result<()> {
         println!("process_report:");
+
+        println!("{}", json_object);
+
         let time_ms = json_object["time"].as_i64().unwrap() * 1000; // microseconds
         let device_id = json_object["deviceId"].as_str().expect("Missing deviceId");
         let data = &json_object["data"];
-
         let fahrenheit = self
-            .to_fahrenheit(data["temperature"].as_f64().unwrap())
+            .to_fahrenheit(data["temperature"].as_f64().expect("missing temperature"))
             .unwrap();
-        let humidity = data["humidity"].as_f64().unwrap();
+        let humidity = data["humidity"].as_f64().expect("missing humidity");
         let vpd = self.get_vpd(fahrenheit, humidity).unwrap();
+        let sensor: Sensor = match self.sensors.get(device_id) {
+            Some(s) => {
+                print!("Received data for sensor id {}", device_id);
+                s.clone()
+            },
+            None => {
+                print!("Unknown sensor id {} -- ignoring data", device_id);
+                return Ok(());
+            }
+        };
 
         let mut buffer = Buffer::new();
         let _ = buffer
             .table("yolink")?
+            .symbol("sensorName", sensor.name)?
             .symbol("deviceId", device_id)?
             .symbol("gatewayId", data["loraInfo"]["gatewayId"].as_str().unwrap())?
             .symbol("netId", data["loraInfo"]["netId"].as_str().unwrap())?
             .symbol("mode", data["mode"].as_str().unwrap())?
             .symbol("state", data["state"].as_str().unwrap())?
+            .column_f64("lat", sensor.lat)?
+            .column_f64("long", sensor.long)?
             .column_f64(
                 "temperature",
                 self.to_fahrenheit(data["temperature"].as_f64().unwrap())

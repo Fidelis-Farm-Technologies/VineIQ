@@ -4,7 +4,6 @@ use reqwest::Error;
 mod database;
 mod yolink;
 
-
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -15,7 +14,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
-    let mut yaml = yolink::Conf::new(&args.config);
+    let mut yaml = yolink::Config::new(&args.config);
 
     let access_token =
         yolink::Access::token(&yaml.get_token_url(), &yaml.get_ua_id(), &yaml.get_sec_id()).await?;
@@ -27,13 +26,16 @@ async fn main() -> Result<(), Error> {
         .expect("Error acquiring the device list");
 
     let home_id = yolink_api.get_home_id().await?;
+    let service_name = yaml.get_service_name();
+    let sensors = yaml.get_sensors();
 
-    let mut db_appender = database::Appender::new(&yaml.get_questdb_url());
+    let mut db_appender = database::Appender::new(&&yaml.get_database_url(), &sensors );
     let mut database_logger = yolink::MqttDatabaseLogger::new(
         &yaml.get_mqtt_broker(),
         yaml.get_mqtt_port(),
         &home_id,
-        &access_token
+        &access_token,
+        &service_name
     );
     database_logger.connect_to_broker(&mut db_appender).await;
 
